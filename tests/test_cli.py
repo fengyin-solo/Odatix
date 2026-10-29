@@ -17,6 +17,7 @@ from conftest import SOURCES_DIR
 import odatix.odatix_main as odatix_main
 import odatix.odatix_explorer as odatix_explorer
 import odatix.odatix_gui as odatix_gui
+import odatix.components.inspect_results as inspect_results
 from odatix.lib.settings import OdatixSettings
 
 
@@ -355,6 +356,19 @@ class TestResultsCommands:
     def test_res_synth_keeps_its_options(self):
         args = parse("res_synth", "-t", "vivado")
         assert args.tool == "vivado"
+
+    def test_inspect_takes_a_file_and_json(self):
+        args = parse("results", "inspect", "results/fmax_results.yml", "--json")
+        assert (args.command, args.result_type) == ("results", "inspect")
+        assert args.file == "results/fmax_results.yml"
+        assert args.json is True
+
+    def test_inspect_json_is_off_by_default(self):
+        assert parse("results", "inspect", "f.yml").json is False
+
+    def test_inspect_requires_a_file(self):
+        with pytest.raises(SystemExit):
+            parse("results", "inspect")
 
 
 class TestCleanCommand:
@@ -836,6 +850,7 @@ def subcommand_parsers():
 COMMAND_LINES = sorted(
     [name for name in odatix_main.COMMANDS if name != "results"]
     + ["results " + result_type for result_type in odatix_main.RESULT_TYPES]
+    + ["results " + inspect_results.RESULT_TYPE]
 )
 
 
@@ -857,6 +872,7 @@ def _readers(command):
     import odatix.components.export_simulation_results as exp_sim_res
     import odatix.components.export_workflow_results as exp_workflow_res
     import odatix.components.generate_configs as gen_configs
+    import odatix.components.inspect_results as inspect_results
     import odatix.components.migrate as migrate_cmd
     import odatix.components.replace_params as replace_params
     import odatix.components.run_analysis as run_analysis
@@ -889,6 +905,7 @@ def _readers(command):
         "results sim": [exp_sim_res.main],
         "results analysis": [exp_analysis.main],
         "results derived": [exp_derived.main],
+        "results inspect": [inspect_results.main],
         "clean": [cln.main],
     }[command]
     return "\n".join(inspect.getsource(reader) for reader in readers)

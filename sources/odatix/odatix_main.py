@@ -43,6 +43,7 @@ import odatix.components.export_workflow_results as exp_workflow_res
 import odatix.components.export_derived_metrics as exp_derived
 import odatix.components.export_analysis as exp_analysis
 from odatix.components import results_command
+from odatix.components import inspect_results as inspect_results_cmd
 import odatix.components.clean as cln
 import odatix.components.migrate as migrate_cmd
 import odatix.components.generate_configs as gen_configs
@@ -85,6 +86,9 @@ COMMAND_GROUPS = (
 
 #: What "odatix results" exports: "all" does every other one in turn.
 RESULT_TYPES = ("all", "synth", "sim", "workflow", "analysis", "derived")
+
+#: A read-only subcommand that shares the "results" parser but exports nothing.
+RESULT_INSPECT_TYPE = inspect_results_cmd.RESULT_TYPE
 
 #: Former command names, still accepted for one version, and what they now read.
 DEPRECATED_COMMANDS = {
@@ -245,6 +249,10 @@ class ArgParser:
     ArgParser.exp_derived_parser = add_type("derived", "apply derived metrics to the result files (post-processing)")
     exp_derived.add_arguments(ArgParser.exp_derived_parser)
     ArgParser.add_nobanner(ArgParser.exp_derived_parser)
+
+    ArgParser.res_inspect_parser = add_type("inspect", "show what a results file holds: format, records, metrics and time range")
+    inspect_results_cmd.add_arguments(ArgParser.res_inspect_parser)
+    ArgParser.add_nobanner(ArgParser.res_inspect_parser)
 
     # Daemon
     ArgParser.monitor_parser = add("monitor", "attach the monitor to a session of the workspace")
@@ -623,6 +631,10 @@ RESULT_COMMANDS = dict(
 )
 
 def export_results_command(args):
+  # "inspect" shares the "results" parser but only reads a file: it is not an
+  # export type, so the export dispatch does not know it.
+  if args.result_type == RESULT_INSPECT_TYPE:
+    return run_main(inspect_results_cmd.main, args)
   return RESULT_COMMANDS[args.result_type](args)
 
 def init_directory(args):
@@ -691,6 +703,11 @@ def main(args=None):
     args.nobanner = False
 
   if args.command in ("monitor", "stop", "ps", "ls"):
+    args.nobanner = True
+
+  # "results inspect" is a quick read-only query like "ls", not a job: its
+  # output starts with the summary, never the banner.
+  if args.command == "results" and getattr(args, "result_type", None) == RESULT_INSPECT_TYPE:
     args.nobanner = True
 
   # What is said from here on is said by the command, not by the module

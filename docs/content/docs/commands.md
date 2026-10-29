@@ -43,6 +43,7 @@ unexpected error prints a one-line message and writes the full trace to
 | Exploration | `odatix dse` | Search a design space instead of sweeping it. |
 | Daemon sessions | `odatix ps`, `odatix monitor`, `odatix stop` | Inspect, attach and stop daemon sessions. |
 | Export | `odatix results [all\|synth\|sim\|workflow\|analysis\|derived]` | Export synthesis, simulation, workflow and analysis results, and apply derived metrics. |
+| Inspect | `odatix results inspect FILE [--json]` | Read-only summary of one results file: format, record counts, metrics, units and time range. |
 | Maintenance | `odatix clean`, `odatix migrate` | Remove generated files from a clean profile, and rewrite settings files written in a former format. |
 | Graphical tools | `odatix-explorer`, `odatix-gui` | Interactive visualization of results, and the full graphical interface. |
 
@@ -394,6 +395,28 @@ Without a type, `odatix results` exports every kind of result that was run (a
 kind whose work directory does not exist is skipped), then applies the derived
 metrics, which read what the others wrote. The options of a type come after it:
 `odatix results sim -o sim.yml`.
+
+### Results inspection
+
+`odatix results inspect FILE` gives a quick read-only look at one results
+file, without opening its YAML or launching Odatix Explorer: the format it was
+written in, the number of records, counts per run type and per tool, the metric
+names with their units, and the time range their timestamps cover.
+
+{{< code lang=bash filename="Terminal" prompt="true" >}}
+$ odatix results inspect results/fmax_results.yml
+$ odatix results inspect results/results_workflow.yml --json
+{{< /code >}}
+
+The current format is reported as `v2`; files written by Odatix 3.7 are
+reported as `v1 synthesis` or `v1 workflow`. Inspecting never migrates them,
+refreshes a cache or writes anything — only an export upgrades a legacy file.
+Metrics the file declares no unit for are flagged in the text output and come
+out as `null` units with `--json`; records with no timestamp yield an empty
+time range. The JSON output carries a `version` field and always lists its
+fields, types, tools and metrics in the same order, so scripts can rely on it.
+A missing, unreadable, corrupted or unrecognized file makes the command exit
+with a non-zero status.
 
 ### Cleanup
 
