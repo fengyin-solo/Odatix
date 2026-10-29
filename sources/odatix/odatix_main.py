@@ -48,6 +48,7 @@ import odatix.components.migrate as migrate_cmd
 import odatix.components.generate_configs as gen_configs
 import odatix.components.replace_params as replace_params
 import odatix.components.ls_command as ls_command
+import odatix.components.config_command as config_command
 from odatix.components.cli_options import add_options, deprecated_option
 
 import odatix.lib.parallel_job_handler.daemon_control as daemon_control
@@ -78,7 +79,7 @@ script_name = os.path.basename(__file__)
 COMMAND_GROUPS = (
   ("Run", ("fmax", "synth", "pnr", "analyze", "sim", "workflow", "dse")),
   ("Results", ("results",)),
-  ("Workspace", ("ls",)),
+  ("Workspace", ("ls", "config")),
   ("Daemon", ("ps", "monitor", "stop")),
   ("Utilities", ("init", "generate", "replace", "clean", "migrate")),
 )
@@ -283,6 +284,22 @@ class ArgParser:
     ArgParser.ls_parser = add("ls", "list the architectures, simulations and workflows of the workspace")
     ls_command.add_arguments(ArgParser.ls_parser)
     ArgParser.add_nobanner(ArgParser.ls_parser)
+
+    ArgParser.config_parser = add("config", "read the settings of the workspace")
+    config_actions = ArgParser.config_parser.add_subparsers(dest="config_action", metavar="<action>")
+    config_actions.required = True
+    ArgParser.config_get_parser = config_actions.add_parser(
+      "get",
+      help="print the value of one setting of odatix.yml",
+      description=(
+        "Print the value Odatix uses for one top-level setting of the workspace settings file "
+        "(odatix.yml): the value the file sets, or its Odatix default when the file leaves the key "
+        "out. The settings file is not modified."
+      ),
+      formatter_class=formatter,
+    )
+    config_command.add_arguments(ArgParser.config_get_parser)
+    ArgParser.add_nobanner(ArgParser.config_get_parser)
 
     # Utilities
     ArgParser.init_parser = add("init", "create the configuration files of a workspace in the current directory")
@@ -650,6 +667,7 @@ COMMANDS = {
   "stop": stop_daemon,
   "ps": list_daemons,
   "ls": ls_command.main,
+  "config": config_command.main,
   "results": export_results_command,
   "clean": lambda args: run_main(cln.main, args),
   "migrate": lambda args: run_main(migrate_cmd.main, args),
@@ -690,7 +708,7 @@ def main(args=None):
   except AttributeError:
     args.nobanner = False
 
-  if args.command in ("monitor", "stop", "ps", "ls"):
+  if args.command in ("monitor", "stop", "ps", "ls", "config"):
     args.nobanner = True
 
   # What is said from here on is said by the command, not by the module

@@ -84,7 +84,13 @@ from odatix.workspace.clean import (
     PathRemoval,
     remove_path,
 )
-from odatix.workspace.core import Workspace, WorkspacePaths, WorkspaceSettings
+from odatix.workspace.core import (
+    Workspace,
+    WorkspacePaths,
+    WorkspaceSettings,
+    setting_defaults,
+    setting_value,
+)
 from odatix.workspace.derived import DerivedMetricsFile
 from odatix.workspace.domains import (
     MAIN_DOMAIN,
@@ -161,6 +167,8 @@ __all__ = [
     "Workspace",
     "WorkspacePaths",
     "WorkspaceSettings",
+    "setting_defaults",
+    "setting_value",
     "open_workspace",
     # Errors
     "WorkspaceError",

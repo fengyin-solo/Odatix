@@ -33,6 +33,8 @@ one gives access to all of them::
         print(architecture.name, architecture.settings.top_level_module)
 """
 
+import copy
+import functools
 import os
 
 from odatix.lib.settings import OdatixSettings
@@ -50,7 +52,14 @@ from odatix.workspace.tools import ToolCollection
 from odatix.workspace.workflows import WorkflowCollection
 from odatix.workspace.yaml_io import file_header, read_yaml
 
-__all__ = ["Workspace", "WorkspacePaths", "WorkspaceSettings", "save_workspace_settings"]
+__all__ = [
+    "Workspace",
+    "WorkspacePaths",
+    "WorkspaceSettings",
+    "save_workspace_settings",
+    "setting_defaults",
+    "setting_value",
+]
 
 
 #: Every path setting of a workspace, with the OdatixSettings attribute holding
@@ -182,6 +191,73 @@ class WorkspaceSettings(Settings):
                 if not self[key]:
                     self[key] = value
         return self
+
+
+@functools.lru_cache(maxsize=None)
+def setting_defaults():
+    """
+    The Odatix default of every top-level setting of ``odatix.yml``, keyed as
+    the file spells each key, in the order :class:`WorkspaceSettings` declares
+    them.
+
+    The path settings take their default from the ``DEFAULT_`` constants of
+    :class:`~odatix.lib.settings.OdatixSettings` -- the same values
+    :class:`WorkspacePaths` falls back to -- and the other settings declare
+    theirs here, next to the behavior they drive.
+    """
+    # Imported lazily: the daemon package is not an import dependency of the
+    # workspace API, and this is the one default that lives there.
+    from odatix.lib.parallel_job_handler.auth import DEFAULT_ACCESS
+
+    path_defaults = dict(
+        (name, getattr(OdatixSettings, attribute)) for name, attribute in PATH_SETTINGS
+    )
+    other_defaults = {
+        "workspace": "odatix",
+        "default_tool": "",
+        "resource_guard": OdatixSettings.DEFAULT_RESOURCE_GUARD,
+        "cpu_limit": OdatixSettings.DEFAULT_CPU_LIMIT,
+        "mem_limit": OdatixSettings.DEFAULT_MEM_LIMIT,
+        "session_access": DEFAULT_ACCESS,
+        "wsl": wsl.MODE_AUTO,
+        "wsl_distribution": "",
+        "wsl_tools": [],
+        "windows_tools": [],
+    }
+    defaults = {}
+    for spec in WorkspaceSettings.specs():
+        if not spec.stored:
+            continue
+        key = spec.key
+        if key in path_defaults:
+            defaults[key] = copy.deepcopy(path_defaults[key])
+        elif key in other_defaults:
+            defaults[key] = copy.deepcopy(other_defaults[key])
+    return defaults
+
+
+def setting_value(key, settings):
+    """
+    The value Odatix uses for one top-level setting of ``odatix.yml``: what the
+    file says, or its Odatix default when the file leaves the key out (or empty).
+
+    Args:
+        key (str): a key of ``odatix.yml``.
+        settings (dict | None): the content of the settings file.
+
+    Returns:
+        The value in use. A fresh copy is returned for a default, so a list or
+        mapping default can never be changed through it.
+
+    Raises:
+        KeyError: `key` is not a setting of ``odatix.yml``.
+    """
+    defaults = setting_defaults()
+    if key not in defaults:
+        raise KeyError(key)
+    if isinstance(settings, dict) and key in settings and settings[key] is not None:
+        return settings[key]
+    return copy.deepcopy(defaults[key])
 
 
 #: Header of a settings file generated from scratch.
@@ -437,6 +513,14 @@ class Workspace(object):
         for the parts of Odatix that take one.
         """
         return OdatixSettings(self.settings_file, silent=True)
+
+    def setting(self, key):
+        """
+        The value Odatix uses for one top-level setting of ``odatix.yml``: what
+        the file says, or its Odatix default when the file leaves the key out
+        (or empty). Raises ``KeyError`` for a key the file does not define.
+        """
+        return setting_value(key, self.settings)
 
     ######################################
     # What the workspace holds

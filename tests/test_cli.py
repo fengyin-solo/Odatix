@@ -883,6 +883,7 @@ def _readers(command):
         "stop": [odatix_main.stop_daemon, odatix_main.kill_zombie_sessions],
         "ps": [odatix_main.list_daemons],
         "ls": [odatix_main.ls_command.main],
+        "config": [odatix_main.config_command.main],
         "results all": [odatix_main.export_all_results, odatix_main.export_results_command],
         "results synth": [exp_res.main],
         "results workflow": [exp_workflow_res.main],

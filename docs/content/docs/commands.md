@@ -37,7 +37,7 @@ unexpected error prints a one-line message and writes the full trace to
 | Category | Commands | Purpose |
 |----------|----------|---------|
 | Initialization | `odatix init` | Initialize workspace files. |
-| Workspace | `odatix ls` | List the architectures, simulations and workflows of the workspace. |
+| Workspace | `odatix ls`, `odatix config get` | List the architectures, simulations and workflows of the workspace, and read its settings. |
 | Generation | `odatix generate`, `odatix replace` | Generate parameter files and replace delimited sections. |
 | Execution | `odatix fmax`, `odatix synth`, `odatix pnr`, `odatix analyze`, `odatix sim`, `odatix workflow` | Enqueue and run synthesis, place & route, RTL analysis, simulation and workflow jobs. |
 | Exploration | `odatix dse` | Search a design space instead of sweeping it. |
@@ -213,8 +213,10 @@ commands use when `-t/--tool` names none.
 ### Configuration
 
 There is no command to edit the configuration: the settings files are plain
-YAML, documented in the [reference](/docs/reference/). To change them other than
-by hand, use the [graphical interface](/docs/gui/app/), or the
+YAML, documented in the [reference](/docs/reference/). To read one value a
+workspace uses, `odatix config get KEY` prints the setting of `odatix.yml`
+(see [Workspace settings](#workspace-settings)); to change them other than by
+hand, use the [graphical interface](/docs/gui/app/), or the
 [Python API](/docs/python_api/) (`odatix.workspace`) in a script.
 
 ### Generation and replacement
@@ -331,6 +333,19 @@ $ odatix ls --json
 `--arch`, `-s/--sim` and `-W/--workflow` choose what is listed (all three by
 default); the patterns are shell-style wildcards on the names. Names are
 shown in columns, as unix `ls` does; `-l` puts one per line.
+
+### Workspace settings
+
+{{< code lang=bash filename="Terminal" prompt="true" >}}
+$ odatix config get work_path              # what odatix.yml sets, or the Odatix default
+$ odatix config get result_path --json     # {"key": "result_path", "value": "results"}
+{{< /code >}}
+
+`odatix config get KEY` prints the value Odatix uses for one top-level setting
+of `odatix.yml`: the value the file sets, or its Odatix default when the file
+leaves the key out (or empty), also in a directory that holds no settings file
+yet. `--json` prints the same key and value as JSON. An unknown key exits with
+a non-zero status; the settings file is never modified.
 
 ### Daemon commands
 

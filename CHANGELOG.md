@@ -48,6 +48,7 @@ Odatix 4.0 is a major release. Most 3.7 workspaces keep working: former command 
 
 - Runs are **sessions** that keep going in the background: `odatix ps`, `odatix monitor` and `odatix stop` list, reattach and stop them, also on another machine through SSH (`-R user@server`)
 - `odatix ls` lists the architectures, simulations and workflows of the workspace (`--arch`, `-s`, `-W` and name patterns to filter, `-a` for their configurations too, `-l` for one name per line)
+- `odatix config get KEY` prints the value Odatix uses for one top-level setting of `odatix.yml`: the one the file sets, or its Odatix default when the file leaves the key out; `--json` prints the key and value. Read-only, an unknown key fails
 - `-a/--architecture`, `--target`, `-s/--sim` and `-W/--workflow` choose what to run from the command line; glob patterns (`*/08bits`) are accepted at every level. `default_tool` in `odatix.yml`
 - `nb_jobs: auto` (`-j auto`): number of CPUs minus one
 - Automatic pause when the machine runs out of CPU or memory, configurable in `odatix.yml`
