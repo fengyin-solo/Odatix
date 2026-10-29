@@ -362,6 +362,7 @@ class TestCleanCommand:
         args = parse("clean")
         assert args.command == "clean"
         assert args.force is False
+        assert args.dry_run is False
         assert args.verbose is False
         assert args.quiet is False
 
@@ -369,6 +370,9 @@ class TestCleanCommand:
         args = parse("clean", "-y", "-V")
         assert args.force and args.verbose
         assert "deprecated" not in capsys.readouterr().out
+
+    def test_dry_run_flag(self):
+        assert parse("clean", "--dry-run").dry_run is True
 
     @pytest.mark.parametrize("former", ["-f", "--force"])
     def test_force_is_a_deprecated_spelling_of_yes(self, former, capsys):
@@ -597,6 +601,19 @@ class TestExitCodes:
 
     def test_clean_succeeds(self, example_workspace):
         assert run_cli("clean", "-Q", cwd=str(example_workspace)).returncode == 0
+
+    def test_clean_dry_run_previews_and_deletes_nothing(self, example_workspace):
+        litter = example_workspace / "vivado_junk.log"
+        litter.write_text("generated\n", encoding="utf-8")
+        result = run_cli("clean", "--dry-run", "-Q", cwd=str(example_workspace))
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert 'Would remove "vivado_junk.log" (file)' in result.stdout
+        assert litter.exists()
+
+    def test_clean_dry_run_reports_when_nothing_matches(self, example_workspace):
+        result = run_cli("clean", "--dry-run", "-Q", cwd=str(example_workspace))
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "Nothing to clean" in result.stdout
 
     def test_clean_falls_back_to_the_default_settings(self, example_workspace):
         (example_workspace / "odatix_userconfig" / "clean_settings.yml").unlink()

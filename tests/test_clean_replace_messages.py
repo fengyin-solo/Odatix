@@ -7,7 +7,7 @@ from odatix.lib.settings import OdatixSettings
 
 
 def _clean_args(**values):
-    defaults = dict(settings_file=None, force=False, verbose=False, quiet=False, config="odatix.yml")
+    defaults = dict(settings_file=None, force=False, dry_run=False, verbose=False, quiet=False, config="odatix.yml")
     defaults.update(values)
     return argparse.Namespace(**defaults)
 

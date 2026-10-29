@@ -399,6 +399,7 @@ metrics, which read what the others wrote. The options of a type come after it:
 
 {{< code lang=bash filename="Terminal" prompt="true" >}}
 $ odatix clean
+$ odatix clean --dry-run         # list what would be removed, delete nothing
 $ odatix clean -y                # also remove the paths that look dangerous
 $ odatix clean -V                # also say which patterns matched nothing
 $ odatix clean -q                # say nothing, except errors
@@ -406,7 +407,10 @@ $ odatix clean -i odatix_userconfig/clean_settings.yml
 {{< /code >}}
 
 `odatix clean` never asks: a pattern that looks dangerous (`/`, `~`, `*`...) is
-left alone with a warning, unless `-y/--yes` is given. A clean profile named
+left alone with a warning, unless `-y/--yes` is given. `--dry-run` applies the
+same profile and the same dangerous-pattern check and prints, one by one, the
+files and directories a clean would remove or leave alone, without deleting
+anything; when no pattern matches, it says so. A clean profile named
 with `-i` that does not exist is an error; without `-i`, a workspace with no
 `clean_settings_file` uses the default profile of Odatix.
 

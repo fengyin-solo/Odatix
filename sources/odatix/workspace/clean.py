@@ -142,7 +142,7 @@ class CleanResult(object):
 # Removing
 ######################################
 
-def remove_path(pattern, force=False, root=None):
+def remove_path(pattern, force=False, root=None, dry_run=False):
     """
     Remove everything one pattern of a clean list matches.
 
@@ -151,11 +151,15 @@ def remove_path(pattern, force=False, root=None):
         force (bool): remove even the patterns of :data:`DANGEROUS_PATHS`.
         root (str): the directory the pattern is relative to. The current one by
             default, which is where the Odatix commands run.
+        dry_run (bool): resolve and report what a clean would do, but delete
+            nothing. The dangerous-pattern check is exactly the one of a real
+            clean, so the preview lists what would be refused as well.
 
     Returns:
-        CleanResult: what was removed, refused or failed. A pattern matching
-        nothing lands in :attr:`~CleanResult.unmatched`, which is not an error:
-        a workspace that was never run has nothing to clean.
+        CleanResult: what was removed (or, in a dry run, what would be),
+        refused or failed. A pattern matching nothing lands in
+        :attr:`~CleanResult.unmatched`, which is not an error: a workspace that
+        was never run has nothing to clean.
     """
     result = CleanResult()
 
@@ -182,10 +186,12 @@ def remove_path(pattern, force=False, root=None):
     for path in matches:
         try:
             if os.path.isfile(path) or os.path.islink(path):
-                os.remove(path)
+                if not dry_run:
+                    os.remove(path)
                 result.add(PathRemoval(path, kind="file"))
             elif os.path.isdir(path):
-                shutil.rmtree(path)
+                if not dry_run:
+                    shutil.rmtree(path)
                 result.add(PathRemoval(path, kind="directory"))
             else:
                 result.unmatched.append(path)
@@ -289,7 +295,7 @@ class CleanSettingsFile(object):
     # Running
     ######################################
 
-    def run(self, force=False, root=None):
+    def run(self, force=False, root=None, dry_run=False):
         """
         Remove everything the list matches.
 
@@ -297,6 +303,8 @@ class CleanSettingsFile(object):
             force (bool): remove even the patterns of :data:`DANGEROUS_PATHS`.
             root (str): the directory the patterns are relative to. The
                 workspace directory by default.
+            dry_run (bool): report what the list would remove or refuse,
+                without deleting anything.
 
         Returns:
             CleanResult: what was removed, refused or failed.
@@ -304,7 +312,7 @@ class CleanSettingsFile(object):
         root = root if root else self.root
         result = CleanResult()
         for pattern in self.remove_list:
-            result.extend(remove_path(pattern, force=force, root=root))
+            result.extend(remove_path(pattern, force=force, root=root, dry_run=dry_run))
         return result
 
     def __repr__(self):

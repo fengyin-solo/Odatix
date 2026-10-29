@@ -42,6 +42,7 @@ def add_arguments(parser):
   parser.add_argument("-y", "--yes", dest="force", action="store_true", help="also remove what the patterns that look dangerous match (/, ~, *, ...): they are left alone otherwise")
   deprecated_option(parser, "-f", "-y/--yes", action="store_true", dest="force")
   deprecated_option(parser, "--force", "-y/--yes", action="store_true", dest="force")
+  parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="print, one by one, the files and directories a clean would remove or leave alone as dangerous, without deleting anything")
   parser.add_argument("-V", "--verbose", action="store_true", help="print extra details")
   parser.add_argument("-q", "--quiet", action="store_true", help="do not print anything, except errors")
   add_options(parser, "config")
@@ -70,24 +71,32 @@ def display_path(path):
   return relative
 
 
-def remove_path(path, force=False, verbose=False, quiet=False):
+def remove_path(path, force=False, verbose=False, quiet=False, dry_run=False):
   """
   Remove everything one clean pattern matches, and report it on the terminal.
   Returns the odatix.workspace.clean.CleanResult of the pattern.
 
   The removal itself is the one the workspace API performs (see
   odatix.workspace.clean), so "odatix clean" and the graphical interface always
-  delete exactly the same things.
+  delete exactly the same things. With `dry_run`, nothing is deleted: the same
+  matching and dangerous-path checks still run, and each hit is reported as
+  what would happen.
   """
-  result = remove_matching_paths(path, force=force)
+  result = remove_matching_paths(path, force=force, dry_run=dry_run)
 
   for removal in result.removed:
     if not quiet:
-      printc.say("Removed \"" + display_path(removal.path) + "\" (" + removal.kind + ")", script_name=script_name)
+      if dry_run:
+        printc.say("Would remove \"" + display_path(removal.path) + "\" (" + removal.kind + ")", script_name=script_name)
+      else:
+        printc.say("Removed \"" + display_path(removal.path) + "\" (" + removal.kind + ")", script_name=script_name)
 
   for removal in result.skipped:
     if not quiet:
-      printc.warning("Deleting \"" + display_path(removal.path) + "\" seems dangerous: it is left alone. Use -y/--yes to delete it anyway (at your own risk)", script_name=script_name)
+      if dry_run:
+        printc.warning("Deleting \"" + display_path(removal.path) + "\" seems dangerous: it would be left alone. Use -y/--yes to delete it anyway (at your own risk)", script_name=script_name)
+      else:
+        printc.warning("Deleting \"" + display_path(removal.path) + "\" seems dangerous: it is left alone. Use -y/--yes to delete it anyway (at your own risk)", script_name=script_name)
 
   if verbose and not quiet:
     # Not a problem: a clean profile lists what a run may leave behind.
@@ -105,7 +114,7 @@ def remove_path(path, force=False, verbose=False, quiet=False):
 # Clean
 ######################################
 
-def clean(settings_filename, force=False, verbose=False, quiet=False):
+def clean(settings_filename, force=False, verbose=False, quiet=False, dry_run=False):
   if not os.path.isfile(settings_filename):
     if not quiet:
       printc.note("There is no clean settings file \"" + settings_filename + "\" in \"" + os.path.realpath(".") + "\". Using default Odatix clean settings file", script_name)
@@ -131,10 +140,13 @@ def clean(settings_filename, force=False, verbose=False, quiet=False):
       printc.note("Are you missing dashes (-)?", script_name)
       sys.exit(-1)
 
+    if dry_run and not quiet:
+      printc.note("Dry run: nothing will be deleted", script_name=script_name)
+
     touched = 0
     success = True
     for path in remove_list:
-      result = remove_path(path, force, verbose, quiet)
+      result = remove_path(path, force, verbose, quiet, dry_run)
       touched += len(result.removed) + len(result.skipped)
       success = success and not result.errors
     if touched == 0 and success and not quiet:
@@ -171,7 +183,8 @@ def main(args, settings=None):
     settings_filename=settings_file,
     force=args.force,
     verbose=args.verbose,
-    quiet=args.quiet
+    quiet=args.quiet,
+    dry_run=args.dry_run
   )
 
 if __name__ == "__main__":
